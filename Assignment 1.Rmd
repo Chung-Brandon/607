@@ -1,0 +1,33 @@
+---
+title: "607 Assignment 1"
+author: "Brandon Chung"
+date: "`r Sys.Date()`"
+output: html_document
+---
+Introduction:
+
+The article that I choose is titled "The Economic Guide To Picking a College Major". The article explores the ideas of increasing education costs, and how to choose a major with earnings power to match the rising costs. The bottom line of the article is that engineering is the field to be in for employment security and higher than average earnings.
+
+The article can be found here:
+
+https://fivethirtyeight.com/features/the-economic-guide-to-picking-a-college-major/
+
+```{r}
+library(readr)
+url <- "https://raw.githubusercontent.com/fivethirtyeight/data/master/college-majors/grad-students.csv"
+data <- read_csv(url)
+
+head(data)
+```
+Explaination:
+
+In the above code I load the dataset via raw data url from github, and read the csv file with the function read_csv from the readr library. I then preview with the head function.
+
+All variables included in the original dataset appear like they could be relevant for data analysis, and all are named appropriately - easily understood.
+
+Conclusions:
+
+To extend the work done in the article I would take a more active help perspective on presentation. Perhaps taking the variable "major category" and comparing major category medians can provide insight for readers actively looking for help. Choosing a career field might be a good first step to choosing a specific major. 
+
+In addition, this article was written in 2014, an update of the data for timeliness would be warrented, but to include new majors are well.
+
