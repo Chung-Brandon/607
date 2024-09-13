@@ -2,7 +2,9 @@
 title: "607 Assignment 1"
 author: "Brandon Chung"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 Introduction:
 
@@ -19,15 +21,40 @@ data <- read_csv(url)
 
 head(data)
 ```
-Explaination:
+Explanation:
 
 In the above code I load the dataset via raw data url from github, and read the csv file with the function read_csv from the readr library. I then preview with the head function.
 
 All variables included in the original dataset appear like they could be relevant for data analysis, and all are named appropriately - easily understood.
 
+```{r}
+library(ggplot2)
+ggplot(data = data, aes(x = Major_category , y = Grad_unemployment_rate))+
+  geom_point() +
+  scale_x_discrete(guide = guide_axis(angle = 90))
+
+ggplot(data = data, aes(x = Major_category , y = Grad_median))+
+  geom_point() +
+  scale_x_discrete(guide = guide_axis(angle = 90))
+```
+Explanation:
+
+The graphs above give us a baseline understanding of the potential outcomes for a student deciding which grad major area to pursue. For example the majors in the education category show a low level of unemployment, but also a lower level of earnings power. Engineering has above average median earnings, with a relatively average unemployment rate. 
+
+
+```{r}
+ggplot(data = data, aes(x = Grad_median)) + 
+  geom_histogram()
+```
+Explanation:
+
+The histogram above shows us the range of reported median salaries. This visualization reminds the student of the economic implications of their major choice. We can see that the different choices of majors can give vastly different financial situations, from earning roughly 50K to 110K
+
+
 Conclusions:
+
+Major choice can have a significant impact on future earnings, and having the data available prior to selection would benefit an informed decision.
 
 To extend the work done in the article I would take a more active help perspective on presentation. Perhaps taking the variable "major category" and comparing major category medians can provide insight for readers actively looking for help. Choosing a career field might be a good first step to choosing a specific major. 
 
 In addition, this article was written in 2014, an update of the data for timeliness would be warrented, but to include new majors are well.
-
