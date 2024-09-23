@@ -1,0 +1,86 @@
+---
+title: "607 Week 3 Assignment"
+author: "Brandon Chung"
+date: "`r Sys.Date()`"
+output: html_document
+---
+Normalization
+
+ Provide an example of at least three dataframes in R that demonstrate normalization. The dataframes can contain any data, either real or synthetic. Although normalization is typically done in SQL and relational databases, you are expected to show this example in R, as it is our main work environment in this course.
+ 
+```{r}
+# Connecting to the three dataframes that I created in SQL Workbench to demonstrate normalization
+
+library(RMySQL)
+Localdbconnect <- dbConnect(MySQL(),user= 'bchung',password= 'august29!',dbname= '607',host= 'bchungcuny607.mysql.database.azure.com')
+
+dbListTables(Localdbconnect)
+```
+```{r}
+# Reading the three dataframes from SQL in R
+Customers <- dbReadTable(Localdbconnect,'customers')
+Invoices <- dbReadTable(Localdbconnect,'invoices')
+Products <- dbReadTable(Localdbconnect,'products')
+
+head(Customers)
+
+```
+```{r}
+head(Invoices)
+```
+```{r}
+head(Products)
+```
+ 
+The databases I created are synthetic data of a pharmacutical supplier's sales and customer data. Following the Boyce-Codd Normal Form, I attempted to ensure that every attribute in each table depends solely on the primary key's (the first column in each table). 
+ 
+ 
+Character Manipulation
+
+2. Using the 173 majors listed in fivethirtyeight.com’s College Majors dataset [https://fivethirtyeight.com/features/the-economic-guide-to-picking-a-college-major/], provide code that identifies the majors that contain either "DATA" or "STATISTICS"
+
+```{r}
+# Loading the dataframe from fivethirtyeight's The Economic Guide to Picking a COllege Major article.
+
+library(readr)
+url <- "https://raw.githubusercontent.com/fivethirtyeight/data/refs/heads/master/college-majors/all-ages.csv"
+college_majors <- read.csv(url)
+```
+
+```{r}
+# Identifying majors with DATA or STATISTICS in its name.
+MajorV <- as.vector(college_majors[,2])
+grep ("DATA|STATISTICS", MajorV, value = TRUE, ignore.case = TRUE)
+```
+To identify majors that contain either DATA or STATISTICS in the name I had to create a vector from the college_major dataset's "Major" variable, then run the above grep code.
+
+
+The two exercises below are taken from R for Data Science, 14.3.5.1 in the on-line version:
+
+3. Describe, in words, what these expressions will match:
+
+(.)\1\1
+This will match any characters in a string that repeats three times.
+
+"(.)(.)\\2\\1"
+This will match any characters in a string with four characters that the first and fourth characters repeat and the second and third characters repeat.
+
+(..)\1
+This will match any four characters in a string where the first and third characters repeat and the second and fourth characters repeat.
+
+"(.).\\1.\\1"
+This will match any five characters in a string where the first, third, and fifth characters repeat. 
+
+"(.)(.)(.).*\\3\\2\\1"
+This will match any seven characters in a string where the first and seventh, second and sixth, and third and fifth characters repeat.
+
+4. Construct regular expressions to match words that:
+
+Start and end with the same character.
+"^([a-z]).*\\1$"
+
+Contain a repeated pair of letters (e.g. "church" contains "ch" repeated twice.)
+"(..).*\\1"
+
+Contain one letter repeated in at least three places (e.g. "eleven" contains three "e"s.)
+"([a-z].*){3,}"
