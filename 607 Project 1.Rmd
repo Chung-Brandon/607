@@ -1,0 +1,168 @@
+---
+title: "607 Project 1"
+author: "Brandon Chung"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Introduction
+In this project I will read a text file of chess tournament results into R, tidy the resulting table, and produce a csv file with the following information of all players:
+ 
+  Player’s Name, Player’s State, Total Number of Points, Player’s Pre-Rating, and Average Pre Chess Rating of Opponents
+
+#Loading Packages
+```{r}
+library(dplyr)
+library(stringr)
+library(tidyverse)
+```
+
+```{r}
+#Reading the text file into R
+rawdata <- read.table("C:\\Users\\chung\\Downloads\\tournamentinfo.txt", sep = "|", fill = TRUE)
+
+head(rawdata)
+```
+
+```{r}
+#Removing the first three rows of header information, and every third row (used in the text file to seperate information from one player to the next). This leaves us with increments of two rows (each pair corresponds to the player and their performance in the tournament)
+
+data <- rawdata[-c(1:3),-11]
+
+data <- data[-grep('^----', data$V1),]
+```
+
+#Extracting player IDs and player prechess ratings from every second row.
+```{r}
+
+staterow <- data[seq(2,128,2),]
+
+#Removing unneeded columns
+staterow <- staterow[,-c(3:10)]
+
+#Splitting column V2 to extract the player id and prechess ratings
+staterow <- staterow %>%
+  separate(V2, c('c1','c2','c3','c4'))
+
+#Removing unneeded columns
+staterow <- staterow[,c(-2,-4)]
+
+#Removing provisional "P" and game count of each player if applicable.
+staterow <- staterow %>%
+  separate(c4, c('pre.rating','c5'), sep = 'P')
+
+#removing unneeded columns and renamming 
+staterow <- staterow[,-4]
+staterow <- staterow %>%
+  rename(state = V1,
+         p.id = c2)
+
+#Adding in a player number column so that we can reference the prechess ratings 
+
+staterow$player.number <- seq.int(nrow(staterow))
+```
+#Extracting player name and total points from every other row of the "data" dataframe
+
+```{r}
+#Creating new dataframe with the desired rows
+
+playerrow <- data[seq(1,128,2),]
+```
+
+```{r}
+#Extracting the opponent numebrs for each round
+
+playerrow <- extract (playerrow, V4, c('result1','O1'), '([A-Z]{0,1}) +([0-9]{0,2})')
+playerrow <- extract (playerrow, V5, c('result2','O2'), '([A-Z]{0,1}) +([0-9]{0,2})')
+playerrow <- extract (playerrow, V6, c('result3','O3'), '([A-Z]{0,1}) +([0-9]{0,2})')
+playerrow <- extract (playerrow, V7, c('result4','O4'), '([A-Z]{0,1}) +([0-9]{0,2})')
+playerrow <- extract (playerrow, V8, c('result5','O5'), '([A-Z]{0,1}) +([0-9]{0,2})')
+playerrow <- extract (playerrow, V9, c('result6','O6'), '([A-Z]{0,1}) +([0-9]{0,2})')
+playerrow <- extract (playerrow, V10, c('result7','O7'), '([A-Z]{0,1}) +([0-9]{0,2})')
+```
+```{r}
+#Remove unneeded columns and rename 
+
+playerrow <- playerrow[,-c(4,6,8,10,12,14,16)]
+
+playerrow <- playerrow %>%
+  rename(player.number = V1,
+         player.name = V2,
+         total.points = V3)
+```
+
+```{r}
+#Creating a reference table to use left join to join the preratings into the player row data table
+
+reference <- staterow[,c(4,3)]
+```
+
+```{r}
+#Join opponent pre chess ratings into player row to be able to calculate the average of opponent ratings.
+
+playerrow <- merge(playerrow,reference,by.x = "O1",by.y = "player.number", sort = FALSE, all.x=TRUE)
+playerrow <- merge(playerrow,reference,by.x = "O2",by.y = "player.number", sort = FALSE, all.x=TRUE)
+playerrow <- merge(playerrow,reference,by.x = "O3",by.y = "player.number", sort = FALSE, all.x=TRUE)
+playerrow <- merge(playerrow,reference,by.x = "O4",by.y = "player.number", sort = FALSE, all.x=TRUE)
+playerrow <- merge(playerrow,reference,by.x = "O5",by.y = "player.number", sort = FALSE, all.x=TRUE)
+playerrow <- merge(playerrow,reference,by.x = "O6",by.y = "player.number", sort = FALSE, all.x=TRUE)
+playerrow <- merge(playerrow,reference,by.x = "O7",by.y = "player.number", sort = FALSE, all.x=TRUE)
+
+```
+
+#Dropping unneeded columns and renaming to be able to calculate average prerating of opponents
+```{r}
+playerrow <- playerrow[,-c(1:7)]
+colnames(playerrow) <- c("player.number","name","total.points","O1PR","O2PR","O3PR","O4PR","O5PR","O6PR","O7PR")
+```
+
+```{r}
+#converting vairables to numeric to be able to calculate average.
+
+playerrow <- playerrow %>%
+  mutate_at(c(1,3:10),as.numeric)
+
+#calculating average pre-rating of opponents
+
+playerrow <- mutate(playerrow, "avg_prerating_opp" = rowMeans(playerrow[,4:10], na.rm = TRUE))
+```
+
+```{r}
+#Removing opponent pre-ratings
+playerrow <- playerrow[,-c(4:10)]
+
+```
+#Creating and formatting the final table to be exported to csv
+
+```{r}
+output.tb <- merge(playerrow,staterow, by = "player.number")
+
+#organizing variable positions to match the requirements of the project
+
+output.tb <- output.tb[,c(2,5,3,7,4)]
+
+#converting column pre.rating into number data type, and rounding avg_prerating_opp
+
+output.tb <- output.tb %>%
+  mutate_at(c(4),as.numeric)
+
+output.tb <- output.tb %>%
+  mutate(avg_prerating_opp = round(avg_prerating_opp))
+
+head(output.tb)
+```
+# Exporting final tb to csv
+
+```{r}
+write.csv(output.tb,"finalchessdf.csv")
+```
+
+
+
+
+
+
+
+
+
+
