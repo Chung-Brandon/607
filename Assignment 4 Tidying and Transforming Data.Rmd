@@ -5,6 +5,8 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
+#Resubmission attempt for week 4's Data Structures in R assignment
+
 Introduction:
 
 This week's assignment is about tidying and transforming data in R using the tidyr and dplyr packages. I will attempt to import the given data in its original form into MySQL Workbench and tidy the data in R. 
@@ -22,6 +24,8 @@ dbListTables(mydb)
 Data <- dbReadTable(mydb,"tidyingdata")
 
 #the data was imported with the unnamed variables being assigned MyUnknownColumn and MyUnknownColumn_.0. by R studio.
+
+Data
 ```
 
 
@@ -44,6 +48,9 @@ Data <- Data %>%
 # Mutating variable Airline to fill in the blank values
 Data <- Data %>%
   mutate(airline = c('ALASKA','ALASKA','AM_WEST','AM_WEST'))
+
+# Showing data frame after basic cleaning
+Data
 ```
 ```{r}
 # Pivoting long for analysis
@@ -51,67 +58,57 @@ Data <- Data %>%
   pivot_longer(
     cols =  3:7,
     names_to = 'destination',
-    values_to = 'count')
+    values_to = 'frequency')
 ```
-```{r}
-# Relocating variable
-Data <- Data %>%
-  relocate(status, .after = destination)
-
-# Pivoting wide 
-Data <- Data %>% 
-  pivot_wider(
-    names_from = status,
-    values_from = count)
-```
-```{r}
-# Cleaning variable names
-colnames(Data) <- gsub(" ", "_", colnames(Data))
-```
-
 
 ```{r}
 # Converting character data types into number for analysis
-Data$on_time <- as.numeric(gsub(",", "", Data$on_time))
-Data$delayed <- as.numeric(as.character(Data$delayed))
-```
+Data$frequency <- as.numeric(gsub(",", "", Data$frequency))
 
+```
+# The tidy dataframe shows the observation of frequency (count of flights) per row. 
 ```{r}
-# Calculating the delay ratios for each airline / destination combination
-Data <- Data %>% 
-  mutate(delayratio = delayed/on_time)
-Data <- Data %>%
-  mutate(total_flights = on_time + delayed)
 Data
 ```
 
+# Analysis
 ```{r}
-# The code below shows the difference in mean and median delay ratios across the two airlines for all destination. Alaska Airlines shows less of a chance for their flights to be delayed compared to AM_West.
+# Calculating the delay ratios for each airline across all destinations
+delayratio.airline <- Data %>%
+  group_by(airline,status) %>%
+  summarise(frequency = sum(frequency)) %>%
+  mutate(delay.ratio = frequency / sum(frequency)) %>%
+  filter(status == "delayed")
 
-Data %>%
-  group_by(airline) %>%
-  summarise(mean_d.ratio = mean(delayratio),
-            median_d.ratio = median(delayratio))
+delayratio.airline
 ```
 
+As we can see, Alaska Airlines has a higher ratio of delayed flights when compared to AM_West even with a lower frequency of flights.
+
+
 ```{r}
-#PLotting the delay ratios of Alaska Airlines by destination
+#Comparing the delay ratios of each airline by destination can give us deeper insight to potential reasons for delays - if delays are typically caused by destination related factors or airline related factors.
+
+delayratio.compare <- Data %>%
+  group_by(airline, destination, status) %>%
+  summarise(frequency = sum(frequency)) %>%
+  mutate(delay.ratio = frequency / sum(frequency)) %>%
+  filter(status =="delayed")
+    
+delayratio.compare  
+```
+
+
+```{r}
+#PLotting the delay ratios by destination
 library(ggplot2)
-ggplot(subset(Data, airline %in% c("ALASKA")), 
-       aes(x = destination, y = delayratio)) +
-  geom_point()
-```
-```{r}
-#Plotting the delay ratios of AM West Airlines by destination
-ggplot(subset(Data,airline %in% c("AM_WEST")),
-       aes(x = destination, y = delayratio)) +
-  geom_point()
+ggplot(delayratio.compare, aes(x = airline, y = delay.ratio)) +
+  geom_point() +
+  facet_wrap(vars(destination))
 ```
 
-
-Doing a quick eye comparison of the two dot plots above we can see that across both airlines the arrival delay ratios are aligned in terms of which desinations have more delays, however AM West shows higher delay ratios for each of the destinations.
+Doing a quick eye comparison of the graphs of delay ratios by destination above we can see that across both airlines the arrival delay ratios are aligned in terms of which desinations have more delays, however AM West shows higher delay ratios for each of the destinations. AM West possibly has airline related factors increasing delay ratios for San Francisco, Seattle, and San Diego.
 
 ## Conclusions:
 Delays to these five destinations are likely impacted by non-airline related factors, as some destinations are delayed more than others regardless of the airline. Although, in comparison we can see that independent of the destination factor AM West shows a higher ratio of delayed to on time arrivals. If one wanted to avoid arrival delays I would recommend flying Alaska Airlines instead of AM West. 
-
 
