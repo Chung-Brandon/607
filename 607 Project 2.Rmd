@@ -1,0 +1,545 @@
+---
+title: "607 Project 2"
+author: "Brandon Chung"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+##Dataset 1
+
+
+#Introduction
+
+This data set contains the data behind the story "Marriage Isn’t Dead — Yet" from FiveThirtyEight and presents the proportions of people within certain social, economic, educational, racial, geographical, and employment groups that have never been married, over the years 1960 to 2012. I will tidy and clean the data set to bring to light the factors that are most strongly correlated with the decision to not get married.
+
+```{r}
+#Reading in the csv file from github's raw data url
+
+rawdata <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/data/refs/heads/master/marriage/both_sexes.csv")
+
+head(rawdata)
+```
+
+```{r}
+#loading packages
+library(tidyr)
+library(dplyr)
+```
+
+
+#Data Cleaning
+
+The data is relatively clean, although there are a few null values and two unnecessary columns. Removing the top four rows will allow me to make year over year comparisons of the proportions of people never married and addresses the null values. The first four rows contain data for years 1960, 1970, 1980, and 1990, then the remaining rows contain individual years of survey data from 2000 to 2012.
+
+```{r}
+#Removing unnecessary columns X and Date (we are given the year in column 2). Removing rows 1 to 4.
+rawdata <- rawdata[-c(1:4),-c(1,3)]
+```
+#Data Tidying
+
+The first thing that I notice when looking to tidy the dataset here is that the column headers are values not variable names, and that the column headers contain multiple variables (an attribute of the observational unit and an age range). 
+
+Assuming that the column headers without the kids or nokids denomination show proportions of marriage taken from a combination of people with kids and no kids, I will create a variable for kids in our tidy data table.   
+
+#Analysis planning
+
+For analysis I will make comparisons between the change in never married proportions for the different attributes and discover if any attributes are markedly above the change in proportion for all attributes, then compare if having kids at home makes a significant impact on these proportions.
+
+#Data Tidying
+
+```{r}
+#Seperating the table into attributes and kids tables to standardize the columns then bind back together
+
+attributes <- rawdata %>%
+  select(-matches("^kids"), -matches("^nokids"))
+
+attributes <- attributes %>%
+  pivot_longer(
+    cols = 2:55,
+    names_to = "attribute",
+    values_to = "p_never.married",
+    values_drop_na = TRUE
+  )
+
+#Splitting the out variables
+attributes <- attributes %>%
+  separate(attribute, into = c("attribute", "age.range"),sep = "_") %>%
+  mutate(age.range = sub("(\\d{2})(\\d{2})", "\\1-\\2", age.range))
+
+attributes <- attributes %>%
+  mutate(kids = "combined") %>%
+  relocate(kids, .after = year)
+```
+```{r}
+kids <- rawdata %>%
+  select(matches("^(year|kids|nokids).*"))
+
+#Pivoting longer the column headers
+
+kids <- kids %>%
+  pivot_longer(
+    cols = 2:19,
+    names_to = "attribute",
+    values_to = "p_never.married",
+    values_drop_na = TRUE
+  )
+
+#Splitting the column kids into kids, attribute, and age.range 
+kids <- kids %>%
+  separate(attribute, into = c("kids","attribute", "age.range"),sep = "_") %>%
+  mutate(age.range = sub("(\\d{2})(\\d{2})", "\\1-\\2", age.range))
+
+```
+
+#Creating the final tidy table
+```{r}
+#In this tidied final table I have the observation of proportion never married per row, and each observation is described by the variables of year survey was taken, status of kids, attributes specified by the American Community Survey, and the age range of the respondent group.
+
+tidy.data <- bind_rows(attributes,kids)
+
+head(tidy.data)
+```
+
+#Data Analysis
+
+To find which attributes are most correlated with an increasing never married proportion I will first explore the different attributes and the effect of kids.
+
+```{r}
+library(ggplot2)
+  ggplot(tidy.data, aes(x = ifelse(kids == "combined", year, NA), y = p_never.married, color = age.range)) +
+  geom_point() +
+  facet_wrap(vars(attribute)) +
+  theme(axis.text.x = element_text(angle = 45))
+```
+
+For attributes that have the greatest never married proportion, Black, HS, MA, NE, Pacific, and poor stand out in the eye test.
+
+```{r}
+kids <- tidy.data %>% filter(kids ==  "kids")
+  ggplot(kids, aes(x = year, y = p_never.married, color = age.range)) +
+  geom_point() +
+  facet_wrap(vars(attribute)) +
+  theme(axis.text.x = element_text(angle = 45))
+```
+
+```{r}
+nokids <- tidy.data %>% filter(kids ==  "nokids")
+  ggplot(nokids, aes(x = year, y = p_never.married, color = age.range)) +
+  geom_point() +
+  facet_wrap(vars(attribute)) +
+  theme(axis.text.x = element_text(angle = 45))
+```
+
+
+```{r}
+td.analysis <- tidy.data %>%
+  filter(year %in% c(2000, 2012)) %>%
+  group_by(attribute, age.range, kids) %>%
+  reframe(difference = p_never.married[year == 2012] - p_never.married[year == 2000])
+  
+td.analysis %>%
+  arrange(-difference)
+```
+
+
+```{r}
+#Finding base rates for the increase of never married proportions from 2000 to 2012
+
+td.analysisall <- td.analysis %>%
+  filter(attribute == "all", kids == "combined") %>%
+  group_by(attribute, age.range, kids)
+  
+td.analysisall %>%
+  arrange(-difference)
+```
+My final tidied data table is tidy.data prior to analysis
+
+#Conclusion
+
+Tidying this data table was challenging, I explored the idea of breaking out attribute = all, and column headers starting with kids or no kids, into their own tables, as they are calculated from the same respondent groups as the proportions for column headers with education, race, location or income values, and breaking out each attribute (education, race, location, income) into their own tables as well. My original thoughts on this was that if I were to maintain these data tables, normalizing by breaking out the attributes into tables would be a better organization for additions, edits deletes, etc., then calculating out the kids/no kids and all attributes proportions from the normalized tables. 
+
+I ended up leaving leaving the final tidied table as one because I was able to format the table to have one observation per row, and the columns be an attribute of the observation (with the creation of the kids column).
+
+As for the data analysis never married proportions are increasing fastest first for the age range of 25-35, the 22 groups in this dataset with the highest never married proportion increases are from the 25-35 age range. We can also see that people with highschool or below education levels, but also rich with no kids are the groups showing the greatest increases.
+
+
+
+
+
+
+
+##Dataset 2
+
+#Introduction
+
+My second data set comes from the results of the International Mathematics Olympiad. It provides each country's teams results in a wide and untidy format. I will attempt to analyze if there is any correlation between the number of females on a countries team and the team's points scored.
+
+
+```{r}
+library(stringr)
+library(dplyr)
+library(tidyr)
+```
+
+```{r}
+#reading in the csv
+imoresults <- read.csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/refs/heads/master/data/2024/2024-09-24/country_results_df.csv")
+
+head(imoresults)
+```
+
+#Data cleaning 
+
+Removing unnecessary columns for analysis: column p7 has no values, and leader and deputy_leader are not of interest.
+
+```{r}
+#removing columns
+imoresults <- imoresults[,-c(12:18)]
+
+#removing rows with null points
+
+imoresults <- imoresults %>% 
+  filter(!is.na(p1))
+
+#removing rows with null male and female counts
+imoresults <- imoresults %>%
+  filter(!(is.na(team_size_male) & is.na(team_size_female)))
+
+#mutating rows to show male and female counts
+imoresults <- imoresults %>%
+  mutate(
+    team_size_male = ifelse(is.na(team_size_male), team_size_all - team_size_female, team_size_male),
+    team_size_female = ifelse(is.na(team_size_female), team_size_all - team_size_male, team_size_female)
+  )
+  
+head(imoresults)
+```
+
+#Data Tidying
+
+There are two observational units in our remaining table. I will split this table into imoteams and imopoints in tidy format before beginning analysis.
+
+```{r}
+#Creating and tidying the teams table
+
+tidy.imoteams <- imoresults[,c(1,2,4,5)]
+
+tidy.imoteams <- tidy.imoteams %>%
+  pivot_longer(
+    cols = 3:4,
+    names_to = "column",
+    values_to = "count"
+  )
+
+tidy.imoteams <- tidy.imoteams %>%
+  mutate(sex = str_extract(column, "male$|female$"))
+
+tidy.imoteams <- tidy.imoteams[,-3] %>%
+  relocate(sex, .after = country)
+
+head(tidy.imoteams)
+```
+
+The tidy version of the teams table contains the observation of count with the variables that describe the count. FOr example the first row is 2024 USA male count and the second row is 2024 USA female count.
+
+```{r}
+#Creating and tidying the points table
+
+tidy.imopoints <- imoresults[,c(1,2,6:11)] %>%
+  pivot_longer(
+    cols = 3:8,
+    names_to = "round",
+    values_to = "points")
+
+#Removing the "p" from the values in the round column  
+
+tidy.imopoints <- tidy.imopoints %>%
+  mutate(round = gsub("[^0-9]", "", round))
+
+head(tidy.imopoints)
+
+```
+
+The tidy version of the points table contains the observation of points scored with the variables that describe the points. For example the first row is 2024 USA round 1 points scored.
+
+
+#Data analysis
+
+For my analysis I want to show the average number of points for each country when there are no females on the team versus when there are females on the team.
+
+To do this I will first sum the points across all rounds in a particular year for each country, then find the years that each country has females on the team and show the average scores of years without females and years with females.
+
+```{r}
+#Adding the points from each round to get the points scored in total from that year and country's team
+
+points_year <- tidy.imopoints %>%
+  group_by(year,country)%>%
+  summarise(points = sum(points))
+```
+
+```{r}
+#Filtering to be able to group for analysis later
+female.imoteams <- tidy.imoteams %>%
+  filter(sex == "female")
+```
+```{r}
+#Joining the points_year table and female.imoteams table
+
+analysis <- inner_join(points_year,female.imoteams, by = c("year","country"))
+```
+
+```{r}
+#Creating tables for 
+m.analysis <- analysis %>%
+  filter(count == 0) %>%
+  group_by(country) %>%
+  summarize(avgpoints_maleonly = mean(points))
+  
+f.analysis <- analysis %>%
+  filter(count != 0) %>%
+  group_by(country) %>%
+  summarize(avgpoints_female = mean(points))
+
+avganalysis <- inner_join(m.analysis,f.analysis,by ="country")
+```
+```{r}
+avganalysis %>%
+  summarise(count = sum(avgpoints_female > avgpoints_maleonly))
+```
+My final tidied data tables for data set 2 prior to analysis is tidy.imopoints and tidy.imoteams
+
+# Conclusion
+
+The original data set had many null values and encompassed two observational units which needed to be broken out into two separate tables. Once I addressed the null values (ensure that male and female counts added to the total reported, and removed rows where male and female were both null or had null point values), I separated the table into two by indexing the original table.
+
+I then pivoted longer the column headers where they contained values and not variable names. This put the two data tables in tidy form. Using this tidy form I was able to do an average point analysis for years of countries with and without females. For other analysis, for example: how well has the US done over the years, or which round is typically scored the lowest across all countries, the tidy format enables these to be done easily. From the original csv format the same analysis could be done, but in a much more complex way - any ad hoc analysis would be more difficult than it could be with tidy data.
+
+For the analysis, out of 117 countries, 46 of them had better average scores from the total year's performance with females on the team. There is not enough data to say if females on the team had a significant impact on the team's average scores.
+
+
+##Dataset 3
+
+#Introduction
+
+My third data set was synthetically created by a classmate. It contains 4 respondents answers to two different screening tools the GAD7 and PHQ9 pre and post intervention. For my analysis I want to compare the pre and post intervention scores to try to determine if the intervention was successful.
+
+
+```{r}
+#Importing data
+#loading libraries
+
+library(tidyr)
+library(dplyr)
+fakedata <- read.csv("https://raw.githubusercontent.com/Chung-Brandon/607/refs/heads/main/Fake_untidy_data.csv")
+
+head(fakedata)
+```
+
+#Data tidying and cleaning
+
+For this data set I will separate it into three different tables for each of the observational units. One for the patient id and consent date, one for the patient answers, and one for the questions of the two different screens.
+
+```{r}
+library(dplyr)
+#removing blank rows
+fakedata <- fakedata[-c(1,22,23,44,45,66,67),]
+
+#substituting point scale for string answers to screen questions
+
+fakedata <- fakedata %>%
+  mutate(phq.response = replace(phq.response, phq.response == "Not at all", 0),
+         gad.response = replace(gad.response, gad.response == "Not at all", 0))
+
+fakedata <- fakedata %>%
+  mutate(phq.response = replace(phq.response, phq.response == "Several days", 1),
+         gad.response = replace(gad.response, gad.response == "Several days", 1))
+
+
+#creating table to hold patient consent dates
+
+consent <- fakedata[,1:2]
+
+consent <- consent %>%
+  rename(consent_date = X)
+
+consent <- consent %>%
+  filter(consent_date != "")
+
+consent <- consent %>%
+  mutate(consent_date = str_extract(consent_date, "\\d{1,2}/\\d{1,2}/\\d{4}"))
+
+
+```
+#Creating tables to hold the questions of both screens
+```{r}
+
+#Creating the gad question bank table
+library(dplyr)
+gadquestions <- fakedata[,c(4,5)]
+gadquestions <- gadquestions[2:8,]
+
+gadquestions <- gadquestions %>%
+  rename(
+       question = "GAD.7.Questions",
+       question.number = "GAD.7")
+
+gadquestions <- gadquestions %>%
+  mutate(question.number = str_extract(question.number, "\\d+"))%>%
+  mutate(question.number = as.integer(question.number))
+
+gadquestions <- gadquestions %>%
+  mutate(screen = "gad")%>%
+  relocate(screen, .before = 1)
+```
+```{r}
+#Creating the PHQ 9 question bank table
+
+phqquestions <- fakedata[,c(7,8)]
+phqquestions <- phqquestions[2:10,]
+
+phqquestions <- phqquestions %>%
+  rename(
+       question = "PHQ.9.Questions",
+       question.number = "PHQ.9")
+
+phqquestions <- phqquestions %>%
+  mutate(question.number = str_extract(question.number, "\\d+"))%>%
+  mutate(question.number = as.integer(question.number))
+
+phqquestions <- phqquestions %>%
+  mutate(screen = "phq")%>%
+  relocate(screen, .before = 1)
+```
+#Binding screen questions to create table of screen questions
+
+```{r}
+screenquestions <- bind_rows(phqquestions,gadquestions)
+
+screenquestions <- screenquestions %>%
+  relocate(question.number, .before = question)
+```
+#Creating patient response table
+
+```{r}
+#Creating gad response table then phq responses to combine the tables into a screenresponse 
+
+gadresponse <- fakedata[,c(1,3:6)]
+
+gadresponse <- gadresponse %>%
+  rename(
+    intervention = "X.1",
+    screen = "GAD.7.Questions",
+    question.number = "GAD.7")
+
+#removing unneccessary rows
+
+gadresponse <- gadresponse %>%
+  filter(gad.response != "")
+
+#filling in blank intervention values  
+
+gadresponse <- gadresponse %>%
+  mutate(intervention = ifelse((row_number() - 1) %% 14 < 7, "before", intervention))
+
+gadresponse <- gadresponse %>%
+  mutate(intervention = ifelse((row_number() - 1) %% 14 >= 7 & row_number() >= 8, "after", intervention))
+
+gadresponse <- gadresponse %>%
+  mutate(question.number = str_extract(question.number, "\\d+"))
+
+# filling in null question numbers and replacing screen column values with gad
+
+gadresponse <- gadresponse %>%
+  mutate(question.number = as.numeric(question.number)) %>%
+  mutate(question.number = replace_na(question.number, 2)) %>%
+  mutate(screen = "gad")
+
+```
+
+```{r}
+phqresponse <- fakedata[,c(1,3,7,8,9)]
+
+phqresponse <- phqresponse %>%
+  rename(
+    intervention = "X.1",
+    screen = "PHQ.9.Questions",
+    question.number = "PHQ.9")
+
+#removing unnecessary rows
+
+phqresponse <- phqresponse %>%
+  filter(!grepl("^Over the last 2 weeks", screen))
+
+phqresponse <- phqresponse %>%
+  filter(phq.response != "")
+
+
+#filling in blank intervention values  
+
+phqresponse <- phqresponse %>%
+  mutate(intervention = ifelse((row_number() - 1) %% 18 < 9, "before", intervention))
+
+phqresponse <- phqresponse %>%
+  mutate(intervention = ifelse((row_number() - 10) %% 18 < 9 & row_number() >= 10, "after", intervention))
+
+# extracting question numbers
+
+phqresponse <- phqresponse %>%
+  mutate(question.number = str_extract(question.number, "\\d+"))
+
+# filling in null question numbers and replacing screen column values with gad
+
+phqresponse <- phqresponse %>%
+  mutate(question.number = as.numeric(question.number)) %>%
+  mutate(question.number = replace_na(question.number, 2)) %>%
+  mutate(screen = "phq")
+
+```
+```{r}
+#Combining the respose tables together to make a tidy response table
+phqresponse <- phqresponse %>%
+  rename(response = "phq.response")
+
+gadresponse <- gadresponse %>%
+  rename(response = "gad.response")
+
+screenresponse <- bind_rows(gadresponse, phqresponse)
+
+head(screenresponse)
+```
+
+```{r}
+#Tidy Tables are the following
+tidy.screenquestions <- screenquestions
+tidy.consent <- consent
+tidy.screenquestion <- screenquestions
+```
+
+
+
+In my final tidy format tables, I created a consent table which holds the patient id and consent date information, a screenquestions table to hold the questions corresponding to both the GAD and PHQ screen's questions and question numbers, and a screenresponse table. The screenresponse table shows observations of patient response based on the patient id, before or after intervention, and which screen, and which question from the screen is being asked. 
+
+
+#Data Analysis
+
+In the data analysis I will sum each patient response scores before and after intervention to see if the intervention was subjectively successful to the patient. This will also tell us which of the GAD or PHQ screens is shows a greater change.
+
+```{r}
+screenresponse <- screenresponse %>%
+  mutate(response = as.integer(response))
+
+
+screenresponse %>%
+  group_by(id,intervention)%>%
+  summarise(response = sum(response))
+```
+
+
+# Conclusion
+
+The cleaning of this data table was a challenge. There were many missing or values of "" in the data table, but also for normalization and tidying the creation of three separate tables was necessary.
+
+After creating the tidy form data table, specifically screenresponse, I can see how the tidyform would make analysis easier via different groupings of variables. In an untidy table where the same response variable is in multiple columns, I'm not sure how analysis would be done, let alone adding, or editing the tables if I was in a database administrative role. 
+
+As for the data analysis we can see in the patient's response that the intervention works. Across both the screens for all four patient the GAD and PHQ scores were reduced. With a sample size of four not much can be said in confidence, however patient 211 and 207 had a decrease of response scores of 17 and 16. These score reductions are larger than the other two patients and more research can should be done into these patients. 
+
