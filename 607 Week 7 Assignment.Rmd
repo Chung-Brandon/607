@@ -1,0 +1,196 @@
+---
+title: "Week 7 Working with JSON, HTML, XML, and Parquet in R"
+author: "Brandon Chung"
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+Data 607
+Assignment: working with JSON, HTML, XML, and Parquet in R 
+You have received the following data from CUNYMart, located at 123 Example Street, 
+Anytown, USA.
+
+
+
+
+Category,Item Name,Item ID,Brand,Price,Variation ID,Variation Details
+Electronics,Smartphone,101,TechBrand,699.99,101-A,Color: Black, Storage: 64GB
+Electronics,Smartphone,101,TechBrand,699.99,101-B,Color: White, Storage: 128GB
+Electronics,Laptop,102,CompuBrand,1099.99,102-A,Color: Silver, Storage: 256GB
+Electronics,Laptop,102,CompuBrand,1099.99,102-B,Color: Space Gray, Storage: 512GB
+Home Appliances,Refrigerator,201,HomeCool,899.99,201-A,Color: Stainless Steel, Capacity: 
+20 cu ft
+Home Appliances,Refrigerator,201,HomeCool,899.99,201-B,Color: White, Capacity: 18 cu ft
+Home Appliances,Washing Machine,202,CleanTech,499.99,202-A,Type: Front Load, Capacity: 
+4.5 cu ft
+Home Appliances,Washing Machine,202,CleanTech,499.99,202-B,Type: Top Load, Capacity: 
+5.0 cu ft
+Clothing,T-Shirt,301,FashionCo,19.99,301-A,Color: Blue, Size: S
+Clothing,T-Shirt,301,FashionCo,19.99,301-B,Color: Red, Size: M
+Clothing,T-Shirt,301,FashionCo,19.99,301-C,Color: Green, Size: L
+Clothing,Jeans,302,DenimWorks,49.99,302-A,Color: Dark Blue, Size: 32
+Clothing,Jeans,302,DenimWorks,49.99,302-B,Color: Light Blue, Size: 34
+Books,Fiction Novel,401,-,14.99,401-A,Format: Hardcover, Language: English
+Books,Fiction Novel,401,-,14.99,401-B,Format: Paperback, Language: Spanish
+Books,Non-Fiction Guide,402,-,24.99,402-A,Format: eBook, Language: English
+Books,Non-Fiction Guide,402,-,24.99,402-B,Format: Paperback, Language: French
+Sports Equipment,Basketball,501,SportsGear,29.99,501-A,Size: Size 7, Color: Orange
+Sports Equipment,Tennis Racket,502,RacketPro,89.99,502-A,Material: Graphite, Color: Black
+Sports Equipment,Tennis Racket,502,RacketPro,89.99,502-B,Material: Aluminum, Color: Silver
+
+
+
+This data will be used for inventory analysis at the retailer. You are required to prepare the data 
+for analysis by formatting it in JSON, HTML, XML, and Parquet. Additionally, provide the pros 
+and cons of each format.
+Your must include R code for generating and importing the data into R.
+
+
+
+# Introduction
+
+This is a resubmission attempt.
+
+In this week's assignment I will be preparing data for analysis in JSON, HTML, XML, and Parquet. I will take the given data, place it into a datatable and format it into JSON, HTML, XML, and Parquet.
+
+## JSON
+
+```{r}
+library(jsonlite)
+
+#Importing the data into a data table in R.
+
+inventory <- data.frame(
+  Category = c("Electronics", "Electronics", "Electronics", "Electronics", "Home Appliances", "Home Appliances", "Home Appliances", "Home Appliances","Clothing", "Clothing", "Clothing", "Clothing", "Clothing","Books", "Books", "Books", "Books","Sports Equipment", "Sports Equipment", "Sports Equipment"),
+  
+  `Item Name` = c("Smartphone", "Smartphone", "Laptop", "Laptop", "Refrigerator", "Refrigerator", "Washing Machine", "Washing Machine","T-Shirt", "T-Shirt", "T-Shirt", "Jeans", "Jeans","Fiction Novel", "Fiction Novel","Non-Fiction Guide", "Non-Fiction Guide", "Basketball", "Tennis Racket", "Tennis Racket"),
+  
+  `Item ID` = c(101, 101, 102, 102, 201, 201, 202, 202, 301, 301, 301, 302, 302, 401, 401, 402, 402, 501, 502, 502),
+  
+  Brand = c("TechBrand", "TechBrand", "CompuBrand", "CompuBrand", "HomeCool", "HomeCool", "CleanTech", "CleanTech", "FashionCo", "FashionCo", "FashionCo", "DenimWorks", "DenimWorks", "-", "-", "-", "-", "SportsGear", "RacketPro", "RacketPro"),
+  
+  Price = c(699.99, 699.99, 1099.99, 1099.99, 899.99, 899.99, 499.99, 499.99, 19.99, 19.99, 19.99, 49.99, 49.99, 14.99, 14.99, 24.99, 24.99, 29.99, 89.99, 89.99),
+  
+  `Variation ID` = c("101-A", "101-B", "102-A", "102-B", "201-A", "201-B", "202-A", "202-B", "301-A", "301-B", "301-C", "302-A", "302-B", "401-A", "401-B", "402-A", "402-B", "501-A", "502-A", "502-B"),
+  
+  `Variation Details` = c("Color: Black, Storage: 64GB", "Color: White, Storage: 128GB", "Color: Silver, Storage: 256GB", "Color: Space Gray, Storage: 512GB", "Color: Stainless Steel, Capacity: 20 cu ft", "Color: White, Capacity: 18 cu ft", "Type: Front Load, Capacity: 4.5 cu ft", "Type: Top Load, Capacity: 5.0 cu ft", "Color: Blue, Size: S", "Color: Red, Size: M", "Color: Green, Size: L", "Color: Dark Blue, Size: 32", "Color: Light Blue, Size: 34", "Format: Hardcover, Language: English", "Format: Paperback, Language: Spanish", "Format: eBook, Language: English", "Format: Paperback, Language: French", "Size: Size 7, Color: Orange", "Material: Graphite, Color: Black", "Material: Aluminum, Color: Silver")
+)
+
+# Convert dataframe to JSON
+json_data <- toJSON(inventory)
+write(json_data, file = "data.json")
+```
+
+```{r}
+head(json_data)
+```
+
+Converting the data table from Rstudio into a Json file placed the entire table into a single line of code in my output file. Copy of part of the Json file below:
+
+[{"Category":"Electronics","Item.Name":"Smartphone","Item.ID":101,
+
+The Json file begins with a square bracket "[", separates each row by curly brackets "{", and a comma separates each value in the row. Then each value in the row is denoted by its column header followed by a ":" then the value, for example 
+
+{"Category":"Electronics","Item.Name":"Smartphone"
+
+"{" shows the beginning of a row, and under the column header "Category" we have the value "Electronics". Then the next value in the row is "smartphone" under the column header "Item.Name"
+
+
+## HTML
+
+```{r}
+# Convert dataframe to HTML
+library(xtable)
+html_data <- xtable(inventory)
+print(html_data, type = "html", file = "data.html")
+```
+
+```{r}
+library("xml2")
+html_table <- read_html("https://raw.githubusercontent.com/Chung-Brandon/607/refs/heads/main/data.html.html")
+
+html_table
+```
+
+Pulling the first 6 lines of HTML data:
+
+
+
+<table border=1>
+<tr> <th>  </th> <th> Category </th> <th> Item.Name </th> <th> Item.ID </th> <th> Brand </th> <th> Price </th> <th> Variation.ID </th> <th> Variation.Details </th>  </tr>
+  <tr> <td align="right"> 1 </td> <td> Electronics </td> <td> Smartphone </td> <td align="right"> 101.00 </td> <td> TechBrand </td> <td align="right"> 699.99 </td> <td> 101-A </td> <td> Color: Black, Storage: 64GB </td> </tr>
+  <tr> <td align="right"> 2 </td> <td> Electronics </td> <td> Smartphone </td> <td align="right"> 101.00 </td> <td> TechBrand </td> <td align="right"> 699.99 </td> <td> 101-B </td> <td> Color: White, Storage: 128GB </td> </tr>
+  <tr> <td align="right"> 3 </td> <td> Electronics </td> <td> Laptop </td> <td align="right"> 102.00 </td> <td> CompuBrand </td> <td align="right"> 1099.99 </td> <td> 102-A </td> <td> Color: Silver, Storage: 256GB </td> </tr>
+  <tr> <td align="right"> 4 </td> <td> Electronics </td> <td> Laptop </td> <td align="right"> 102.00 </td> <td> CompuBrand </td> <td align="right"> 1099.99 </td> <td> 102-B </td> <td> Color: Space Gray, Storage: 512GB </td> </tr>
+
+
+
+HTML uses the greater than and less than signs to denote the structure. For example the first line shows "<table border=1>" and row 25 shows "</table>" to show the end of the table. The / shows the end of what is being denoted. Another example of this is the table header <th> Category </th>. In general, html format displays tables in the same structure as an RStudio data table where each value in a row in Rstuido is shown in a corresponding row in html format. 
+
+A notable feature about html is that formatting is shown in an HTML file as well as the table data. <td align="right"> appears in our dataset in the beginning of every row because of the right align that is used on the row number.  
+
+## XML
+
+```{r}
+# Convert dataframe to XML
+
+library(XML)
+
+xml_data <- newXMLDoc()
+root_node <- newXMLNode("inventory", doc = xml_data)
+
+for (i in 1:nrow(inventory)) {
+  item_node <- newXMLNode("item", parent = root_node)
+  for (col in names(inventory)) {
+    newXMLNode(col, inventory[i, col], parent = item_node)
+  }
+}
+
+# Save the XML
+saveXML(xml_data, file = "data.xml")
+```
+```{r}
+print(xml_data)
+```
+
+XML format uses the same <> to denote values of rows as html but the structure of the XML is not made to be similar to the table like html is. In XML each code chunk is a row of data from our Rstudio table. XML seems similar to html in the uses of <> and the fact that XML also includes value format information in its code. 
+
+
+
+
+## Parquet
+
+```{r}
+library(arrow)
+write_parquet(inventory, "data.parquet")
+
+parquet_data <- read_parquet("C:\\Users\\chung\\Documents\\607\\data.parquet")
+```
+My parquet data can be found here:
+
+https://github.com/Chung-Brandon/607/blob/main/data.parquet
+
+Pulling out the first few lines from this file this is what we see:
+
+PAR1–œL
+   KðJ
+   Electronics   Home Appliances   Clothing   Books   Sports Equipment "&,(6 (Sports EquipmentBooks   @   (  $’¤m#	 &Æ5 Category(´¾&Ä&6 (Sports EquipmentBooks ,      ¨°L   ”ð“
+   Smartphone   Laptop
+   
+   
+The Parquet data is not formatted in an intuitive way like the other file formats, and does not seem to have a structure that is not easily readable. The reading of this file requires a computer to decode it - especially when thinking about larger datasets. 
+   
+## Pros and Cons
+
+Pros and Cons of each format:
+1. JSON - PROS: Readable, widely used in web services CONS: Large file sizes.
+
+2. HTML - PROS: Readable, Good for data display, easily viewable in web browsers. CONS: not good for analysis, storage of large data sets. 
+
+3. XML - PROS: Good for complex nested structures CONS: larger file size, slower parsing than JSON.
+
+4. Parquet - Highly efficient storage and query performance, supported by big data tools. CONS: Not human readable
+
+
