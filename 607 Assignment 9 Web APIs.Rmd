@@ -1,0 +1,47 @@
+---
+title: "607 Week 9 Assignment Web APIs"
+author: "Brandon Chung"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Instructions
+
+
+The New York Times web site provides a rich set of APIs, as described here:  https://developer.nytimes.com/apis 
+You’ll need to start by signing up for an API key. 
+Your task is to choose one of the New York Times APIs, construct an interface in R to read in the JSON data, and 
+transform it into an R DataFrame.
+
+
+```{r}
+#Load packages
+library(httr2)
+library(jsonlite)
+
+```
+
+```{r}
+# API Call
+# The API call from NYTs requires API key to be put into the url at the end, and certain parameters for querying eg (lists/names)
+
+api_key <- "HkhZiJEhn1oSfOE6SGZVqKWDyvYsCy7r"
+
+url <- "https://api.nytimes.com/svc/books/v3/lists/names.json?api-key=HkhZiJEhn1oSfOE6SGZVqKWDyvYsCy7r"
+
+
+req <- request(url) %>%
+  req_headers(Authorization = paste("Bearer", api_key))
+
+resp <- req_perform(req) 
+
+#Reading json data response into a data frame in R
+
+json_data <- resp_body_json(resp)
+
+
+df <- as.data.frame(json_data) 
+print(df)
+```
+
+
