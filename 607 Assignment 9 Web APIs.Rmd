@@ -18,30 +18,65 @@ transform it into an R DataFrame.
 #Load packages
 library(httr2)
 library(jsonlite)
-
+library(tidyverse)
+library(infer)
 ```
 
 ```{r}
-# API Call
 # The API call from NYTs requires API key to be put into the url at the end, and certain parameters for querying eg (lists/names)
+# API call to find the list of best sellers that I want to research
 
 api_key <- "HkhZiJEhn1oSfOE6SGZVqKWDyvYsCy7r"
 
 url <- "https://api.nytimes.com/svc/books/v3/lists/names.json?api-key=HkhZiJEhn1oSfOE6SGZVqKWDyvYsCy7r"
 
+#Using json to perform the api call
 
-req <- request(url) %>%
-  req_headers(Authorization = paste("Bearer", api_key))
+json_data <- fromJSON(url)
 
-resp <- req_perform(req) 
+# Flatten the json data
 
+flat_json <- flatten(json_data)
+                     
 #Reading json data response into a data frame in R
 
-json_data <- resp_body_json(resp)
+df <- as.data.frame(flat_json$list_name_encoded)
 
-
-df <- as.data.frame(json_data) 
-print(df)
+head(df)
 ```
 
 
+
+
+```{r}
+url2 <- "https://api.nytimes.com/svc/books/v3/lists/current/business-books.json?api-key=HkhZiJEhn1oSfOE6SGZVqKWDyvYsCy7r"
+
+
+json_data2 <- fromJSON(url2)
+
+# Flatten the json data
+
+                     
+#Reading json data response into a data frame in R
+
+df2 <- as.data.frame(json_data2$results$books)
+
+head(df2)
+```
+
+## Analysis
+
+I want to test if the top 5 books have a larger image size than the bottom 5 from the top 10 best selling buisness books.
+
+```{r}
+df2 <- df2[,c(1,11,16,17)]
+
+df2 <- df2 %>%
+  mutate(image_area = book_image_width * book_image_height) %>%
+  mutate(top.5 = rank < 6)
+```
+
+```{r}
+ggplot(df2, aes(x = top.5, y = image_area)) +
+  geom_boxplot()
+```
