@@ -1,0 +1,43 @@
+---
+title: "607 Week 11 Recommender Systems Disscussion"
+author: "Brandon Chung"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Introduction
+
+For this disscussion I have selected Netflix's show, movie, and game recommender system. Netflix is a media service provider that my friends, family, and I frequently use for entertainment.
+
+
+
+## Scenerio Design Analysis
+
+For Netflix, greater subscriber engagement (increased use time watching or playing) should equate to better economics for the buisness. Thus, a better recommender system provides higher quality entertainment for the user, and also boosts profits for Netflix. Because of this interplay between Netflix and their customers I will do a single scenario analysis.
+
+1. Who are their target users?
+
+Netflix has hundreds of millions of subscribers globaly and use their recommender system to provide quality entertainment that Netflix believes the customer will enjoy. Netflix's customers span across all ages and many geographies. 
+
+2. What are their key goals?
+
+The key goals of Netflix is to provide their customers with entertainment (movies, shows and games) that will keep their customers statisfied, but also to make reaching subjectively good content easily accessable.
+
+3. How can you help them accomplish those goals?
+
+Netflix currently recommends entertainment based on viewing history, prior rating, other customers with similar tastes and preferences, the languages you prefer, the time of day, and information about the titles: genre, categories, actors, release year, etc. (How Netflix’s Recommendations System Works, 2024). Taking all of their data points, Netflix then utilizes collaborative filtering and content-filtering to rank and display content to its users based on that ranking.(Kasula, 2020).   
+
+
+
+## Improvements
+
+An overlooked aspect of Netflix subscriptions is that multiple people could be using the same account. Although Netflix is taking steps to address this with cracking down on accounts with multi-device use, I would consider making improvements on the assumption that multiple people (with the same device usage) could still be using the same account. If the same account seemingly has differences in usage at different times of the day, or drastically different content consumption, the recommender system should be divided to provide accurate recommendations.
+
+## References 
+
+- Kasula, C. P. (2020, June 28). Netflix Recommender System — A Big Data Case Study - Towards Data Science. Medium. 
+https://towardsdatascience.com/netflix-recommender-system-a-big-data-case-study-19cfa6d56ff5
+
+- How Netflix’s recommendations system works. (2024). Help Center.
+https://help.netflix.com/en/node/100639
+
