@@ -1,0 +1,133 @@
+---
+title: "607 Week 11 Extra Credit Recommender Systems"
+author: "Brandon Chung"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Instructions
+Using the information you collected on movie ratings, implement a Global Baseline Estimate recommendation system in R.  
+
+Most recommender systems use personalized algorithms like “content management” and “item-item collaborative filtering.” Sometimes non-personalized recommenders are also useful or necessary. One of the best non-personalized recommender system algorithms is the “Global Baseline Estimate.
+
+The job here is to use the survey data collected and write the R code that makes a movie recommendation using the Global Baseline Estimate algorithm.  Please see the attached spreadsheet for implementation details.
+
+## Introduction
+
+I will create a recommender system based on the given movie ratings data and Global Baseline Estimate algorithm. I will show what movie each critic would most likely enjoy out of the movies that they have not seen from the 6 movies in the data.
+
+The global baseline estimate algorithm is GBE = Mean Movie Rating + SPecific movie rating relative to average + specific critic's average relative to the mean movie rating.
+
+```{r}
+library(janitor)
+library(tidyverse)
+```
+```{r}
+# Importing dataset
+
+movieratings <- read.csv("https://raw.githubusercontent.com/Chung-Brandon/607/refs/heads/main/movieratings.csv")
+
+# Removing empty rows
+movieratings <- movieratings[c(1:16),]
+
+# Cleaning column names to be undercase
+movieratings <- movieratings %>%
+  clean_names()
+```
+
+```{r}
+# Viewing the movie rating matrix
+head(movieratings)
+```
+
+```{r}
+# Tidying the data
+movieratings.tidy <- movieratings %>%
+  pivot_longer(
+    cols = 2:7,
+    names_to = "movie",
+    values_to = "rating"
+  )
+
+head(movieratings.tidy)
+```
+
+```{r}
+# creating df for critic average ratings 
+
+critic.avg <- movieratings.tidy %>%
+  group_by(critic) %>%
+  summarize(avg.rating = mean(rating, na.rm = TRUE))
+
+head(critic.avg)
+```
+
+```{r}
+# Calculating the mean_movie rating
+mean_movie_rating <- mean(movieratings.tidy$rating, na.rm = TRUE)
+
+mean_movie_rating
+```
+```{r}
+# Mutate critic rating relative to mean_movie_rating into critic.avg
+
+critic.avg <- critic.avg %>%
+  mutate(critic.mean_relativerating = avg.rating - mean_movie_rating)
+```
+```{r}
+# Calculate movie rating relative to mean_movie_rating
+
+movie.avg <- movieratings.tidy %>%
+  group_by(movie) %>%
+  summarise(avg.rating = mean(rating, na.rm = TRUE))
+
+movie.avg <- movie.avg %>%
+  mutate(movie.mean_relativerating = avg.rating - mean_movie_rating)
+```
+```{r}
+# Calculating global baseline estimate for each movie
+
+# Join the datasets together for relevent values for GBE calculation
+combined <- movieratings.tidy %>%
+  left_join(critic.avg, by = "critic") %>%
+  left_join(movie.avg, by = "movie")
+
+
+# Drop unnecessary columns
+combined <- combined[,-c(4,6)]
+
+# Mutate in GBE column
+combined <- combined %>%
+  mutate(gbe = mean_movie_rating + critic.mean_relativerating + movie.mean_relativerating)
+
+head(combined)
+```
+```{r}
+# Creating a recommendations list where rating = NA, and arranging by GBE
+
+recommendations <- combined %>%
+  filter(is.na(rating)) %>%
+  group_by(critic) %>%
+  arrange(desc(gbe)) %>%
+  select(critic, movie, gbe)
+  
+
+top.recommendation <- combined %>%
+  filter(is.na(rating)) %>%
+  group_by(critic) %>%
+  slice_max(gbe, n = 1) %>%
+  select(critic, movie, gbe)
+
+head(top.recommendation)
+```
+```{r}
+top.recommendation %>%
+  group_by(movie) %>%
+  count() %>%
+  arrange(desc(n))
+```
+
+
+## Conclusion 
+
+In conclusion, using the Global Baseline Estimate recommendation system I have found the top recommended movies for each critic, if they have not rated any of the 6 movies listed, and displayed them in the data set top.recommendation. Deadpool rated the highest recommended movie for 7 out of 12 critics, and jungle_book came in second being top rated for 2 out of 12 critics.  
