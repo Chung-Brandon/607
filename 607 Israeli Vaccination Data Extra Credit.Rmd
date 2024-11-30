@@ -1,0 +1,99 @@
+---
+title: "607 Israeli Vaccination Data - Extra Credit"
+author: "Brandon Chung"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Introduction
+
+In this assignment I will be cleaning and tidying Israeli vaccination data to explore and answer pertinent questions.
+
+1. Do you have enough information to calculate the total population? What does this total population represent?
+
+2. Calculate the Efficacy vs. Disease; Explain your results.
+
+3. From your calculation of efficacy vs. disease, are you able to compare the rate of severe cases in unvaccinated individuals to that in vaccinated individuals?
+
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+# Loading in the csv downloaded at the provided link
+
+israeli_vaccination_data <- read.csv("C:\\Users\\chung\\Downloads\\israeli_vaccination_data_analysis_start.csv")
+
+head(israeli_vaccination_data)
+```
+
+```{r}
+# Data cleaning and tidying
+
+# Removing unncessary rows
+israeli_vaccination_data <- israeli_vaccination_data[c(1:5),]
+
+# Filling Age column
+israeli_vaccination_data <- israeli_vaccination_data %>% 
+  mutate(Age = c("age" ,"<50", "<50", ">50", ">50"))
+
+# Tidying the table 
+
+tidy.data <- israeli_vaccination_data[c(2,4),c(1:3)] %>%
+  rename(
+    age = Age,
+    not_vax = Population..,
+    vax = X 
+  )
+  
+tidy.data <- tidy.data %>%
+  pivot_longer(
+    cols = 2:3,
+    names_to = "status",
+    values_to = "population"
+  )
+
+# Mutating in final two columns that are pulled from the original data
+
+tidy.data <- tidy.data %>%
+  mutate(percent = c("23.3","73.0","7.9","90.4")) %>%
+  mutate(severe_cases.per100k = c("43", "11", "171", "290"))
+
+# Converting data types to numerical 
+tidy.data <- tidy.data %>%
+  mutate(across(3:5, ~ parse_number(.)))
+
+head(tidy.data)
+```
+
+
+## Questions
+
+1. We do not have enough data to calculate the total population. The percentage of people who are not vaccinated and people who are fully vaccinated combine for a percentage less than 100. We can assume that the remainder of percentage are people who could be partially vaccinated, but we cannot know for certain without documentation of the study. We also do not know if population percentages exclude people who are not eligible to receive vaccinations such as children or the immunocompromised. A quick search of Israeli's population tells me there are just about 9MM people (3 years ago when this github data was published), but the study only accounts for about 7MM. 
+
+2. 
+
+```{r}
+efficacy_50under <- 1 - (((11/100000)*100 / ((43/100000)*100))) 
+efficacy_50over <- 1 - (((290/100000)*100 / ((171/100000)*100))) 
+```
+```{r}
+efficacy_50over
+```
+```{r}
+efficacy_50under
+```
+```{r}
+# Efficacy calculation for overall population
+efficacy_combined <- 1 - (((301/100000)*100 / ((214/100000)*100))) 
+```
+
+```{r}
+efficacy_combined
+```
+
+Above are the calculations for efficacy vs severe disease. The efficacy of the combined (above and below 50 years of age) comes out to a negative number, and this is because the hospitalizations per 100K of the fully vaccinated group is larger than the hospitalizations per 100k of the unvaccinated group. Although the data here shows that being vaccinated seems to lead to more hospitalizations, there could be underlying variables which influence hospitalizations. For example, hospitals may turn away younger patients to preserve resources to treat older patients, and older patients may be more cautious with their symptoms, opting to seek hospitalizations for symptoms where younger people may not. People who are active and healthy may also opt not to receive the vaccine, where older people or people living with other diseases may opt for a vaccine out of caution.
+
+3. From the caclulation of efficacy vs disease I am able to make a quick comparison between the rates of unvaccinated vs vaccinated individuals. A positive number would indicate that the percent of people per 100k being hospitalized is greater for the unvaccinated group versus the vaccinated group. A postive number closer to 1 would show a greater efficacy, meaning a greater affect of the vaccine.  
+
