@@ -1,0 +1,299 @@
+---
+title: '607 Final Project: Stock Price Movement vs Earnings'
+author: "Brandon Chung"
+date: "12/18/2024"
+output:
+  slidy_presentation: default
+  beamer_presentation: default
+---
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Loading packages
+
+library(tidyverse)
+library(rvest)
+library(stringr)
+library(kableExtra)
+library(lubridate)
+library(janitor)
+```
+
+
+## Overview
+
+I acquired, transformed and analyzed historical stock price data and reported earnings per share (EPS) for the companies Apple (AAPL), Applovin (APP), and Nividia (NVDA). I performed a hypothesis test on the average percent price change per quarter. 
+
+Hypothesis: The quarter following a reported +30% EPS surprise has a greater price appreciation than if the EPS surprise is <30%
+
+\[ H_0: \mu = \mu_0 \]
+
+\[ H_a: \mu > \mu_0 \]
+
+## Project Motivation
+
+My project motivation was to deepen my understanding of stock price action to better inform my own investment choices, but also to practice my data science skills on a data set I find challenging.  
+
+## Data Acquistion - Price History
+
+Stock price data is available for download at nasdaq.com
+
+```{r, out.width='80%', fig.align='center', echo=TRUE}
+# Reading in price history raw data csv from github
+appl_ph <- read.csv("https://raw.githubusercontent.com/Chung-Brandon/607/refs/heads/main/AAPL_ph.csv")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+head(appl_ph) %>%
+  kable("latex", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("striped","scale_down"))
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Reading in price history for NVDA and APP stocks
+nvda_ph <- read.csv("https://raw.githubusercontent.com/Chung-Brandon/607/refs/heads/main/NVDA_ph.csv")
+
+app_ph <- read.csv("https://raw.githubusercontent.com/Chung-Brandon/607/refs/heads/main/APP_ph.csv")
+```
+
+
+## Data Acquistion - Reported Earnings per Share
+Data scraping with rvest on alphaquery.com
+
+```{r, out.width='60%', fig.align='center', echo=TRUE}
+url <- "https://www.alphaquery.com/stock/NVDA/earnings-history"
+webpage <- read_html(url)
+
+earnings_table <- html_nodes(webpage, 'table')
+nvda.eps <- html_table(earnings_table)[[1]]
+```
+
+## Data Acquistion - Reported Earnings per Share
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+head(nvda.eps) %>%
+  kable("latex", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("striped","scale_down"))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+url <- "https://www.alphaquery.com/stock/APP/earnings-history"
+webpage <- read_html(url)
+
+earnings_table <- html_nodes(webpage, 'table')
+app.eps <- html_table(earnings_table)[[1]]
+
+url <- "https://www.alphaquery.com/stock/AAPL/earnings-history"
+webpage <- read_html(url)
+
+earnings_table <- html_nodes(webpage, 'table')
+appl.eps <- html_table(earnings_table)[[1]]
+```
+
+## Data Transformation - Clean and Mutate PH
+
+```{r}
+# Mutate in the company ticker
+app_ph <- app_ph %>%
+  mutate(company = "app") %>%
+  relocate(company, .before = 1)
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+appl_ph <- appl_ph %>%
+  mutate(company = "appl") %>%
+  relocate(company, .before = 1)
+
+nvda_ph <- nvda_ph %>%
+  mutate(company = "nvda") %>%
+  relocate(company, .before = 1)
+```
+```{r}
+# Bind price history tables together
+combined_ph <- rbind(app_ph, appl_ph, nvda_ph)
+```
+
+```{r}
+# Removing unnecessary columns
+combined_ph <- combined_ph[,(1:3)] %>%
+  rename(close = Close.Last,
+         date = Date)
+```
+## Data Transformation - Clean and Mutate PH
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+head(combined_ph) %>%
+  kable("latex", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("striped","scale_down"))
+```
+
+## Data Transformation - Clean and Mutate EPS
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+app.eps <- app.eps %>%
+  mutate(company = "app") %>%
+  relocate(company, .before = 1)
+
+appl.eps <- appl.eps %>%
+  mutate(company = "appl") %>%
+  relocate(company, .before = 1)
+
+nvda.eps <- nvda.eps %>%
+  mutate(company = "nvda") %>%
+  relocate(company, .before = 1)
+
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+combined_eps <- rbind(app.eps,appl.eps,nvda.eps) %>%
+  clean_names()
+```
+
+```{r, size='small'}
+# Converting EPS data into numeric data for calculations
+combined_eps <- combined_eps %>%
+  mutate(estimated_eps = as.numeric(gsub("[^0-9.]", "", estimated_eps)),
+         actual_eps = as.numeric(gsub("[^0-9.]", "", actual_eps)))
+```
+
+```{r, size='tiny'}
+# Mutating in EPS surpise %
+combined_eps <- combined_eps %>%
+  mutate(eps.surprise.p = (((actual_eps - estimated_eps) / estimated_eps) * 100))
+```
+
+```{r, size='tiny'}
+# Removing unneccessary columns
+combined_eps <- combined_eps[,-c(3,4,5)]
+```
+
+## Data Transformation - Clean and Mutate EPS
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+head(combined_eps) %>%
+  kable("latex", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("striped","scale_down"))
+
+```
+
+
+## Data Transformation - Merging and Forming Tidy Table
+
+```{r, size='tiny'}
+# standardizing date columns in both combined data frames
+combined_eps <- combined_eps %>%
+  rename(date = announcement_date)
+
+combined_eps$date <- ymd(combined_eps$date)
+combined_ph$date <- mdy(combined_ph$date)
+
+```
+```{r, size='tiny'}
+## Using innerjoin to keep only the observations with dates of EPS announcement
+tidy.df <- combined_ph %>%
+  inner_join(combined_eps, by = c("company", "date"))
+```
+
+## Tidy Data
+
+```{r, size='tiny'}
+# Converting close variable to numeric data
+tidy.df <- tidy.df %>%
+  mutate(close = as.numeric(gsub("[^0-9.]", "", close)))
+```
+
+```{r, size='tiny'}
+# Calculating the percentage change from EPS announcement to next EPS announcement
+tidy.df <- tidy.df %>%
+  group_by(company) %>%
+  arrange(company, date) %>%
+  mutate( percentage_change = (lead(close) - close) / close * 100 )
+```
+
+## Tidy Data 
+
+Left with 95 observations of 5 variables
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+head(tidy.df) %>%
+  kable("latex", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("striped","scale_down"))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+tidy.df %>%
+  group_by(company) %>%
+  summarize(count = n())
+```
+
+## Data Visualization
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(tidy.df, aes(x = date)) +
+  geom_line(aes(y = percentage_change, color = "Percentage Change")) +
+  geom_line(aes(y = eps.surprise.p, color = "EPS Surprise")) +
+  labs(title = "Two-Line Plot Faceted by Company", x = "Date", y = "Value") +
+  scale_color_manual(values = c("Percentage Change" = "blue", "EPS Surprise" = "red")) + facet_wrap(~ company) + theme_minimal()
+```
+
+## Data Visualization
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(na.omit(tidy.df), aes(x = eps.surprise.p, y = percentage_change)) +
+  geom_point()
+```
+
+
+## Analysis
+
+\[ H_0: \] The percentage change for the period after a >30% EPS surprise is the same for <30% EPS surprise.
+\[ H_a: \] The percentage change for the period after a >30% EPS surprise is greater than for a <30% EPS surprise.
+
+
+\( \mu: \) 14.00
+
+\( \mu_{30}: \) 51.467
+
+
+## Analysis 
+
+```{r}
+tidy.df <- tidy.df %>%
+  mutate(eps.30 = ifelse(percentage_change > 30, "Yes", "No"))
+tidy.df %>%
+  group_by(eps.30) %>%
+  summarise(mean_pchange = mean(percentage_change),
+            count = n())
+```
+
+## Analysis
+
+```{r}
+mean_p.change <- mean(tidy.df$percentage_change, na.rm = TRUE)
+mean_p.change
+```
+
+
+## Analysis 
+
+Calculating a 95% confidence interval around the eps.30 "Yes" group
+
+```{r}
+# Creating a CI with the t.test function
+
+t_test <- tidy.df[,5]
+t_test_result <- t.test(t_test, conf.level = 0.95)
+conf_interval <- t_test_result$conf.int
+cat("95% Confidence Interval: [", conf_interval[1], ", ", conf_interval[2], "]\n")
+```
+
+## Analysis visualization
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(na.omit(tidy.df), aes(eps.30, percentage_change)) +
+  geom_boxplot()
+```
+
+
+## Conclusion
+
+Because our EPS surprise >30% group has a mean percent change of 51, outside of the calculated CI, we reject the null hypothesis and can say that we are 95% confident that for the quarter post EPS announcement, if there is an EPS surprise of 30% or greater, we will likely see greater percent stock appreciation.
